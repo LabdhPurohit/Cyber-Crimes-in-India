@@ -2,6 +2,7 @@ from flask import Flask, render_template, request
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
+import os
 
 app = Flask(__name__)
 
@@ -96,4 +97,5 @@ def select_state():
     return render_template('state.html', states=states, clusters=clusters, total_crimes=total_crimes, districts=[], clusters_d=[], total_crimes_d=[], crime_sums=crime_sums, crime_labels=crime_columns, hide_element=hide_element)
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port)
