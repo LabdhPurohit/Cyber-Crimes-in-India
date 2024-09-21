@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cyber Crimes in India</title>
+    <script src="https://code.highcharts.com/highcharts.js"></script>
+    <style>
+        /* General styles */
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+        }
+
+        /* Adjust the chart container size */
+        .chart-container {
+            width: 100%;
+            height: 800px;
+            margin: 20px 0;
+        }
+
+        .topp {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .button {
+            color: #fff;
+            background-color: #2a2a2a;
+            border: none;
+            border-radius: 10px;
+            padding: 10px 15px;
+            margin: 0 10px;
+            text-decoration: none;
+            transition: background-color 0.3s;
+        }
+
+        .button:hover {
+            background-color: #444;
+        }
+
+        .dropdown-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 20px 0;
+        }
+
+        select {
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            transition: border-color 0.3s;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: #36a2eb;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+
+        .dd {
+            font-size: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header"><h1>CYBER CRIMES IN INDIA</h1></div>
+    <div class="topp">
+        <a href="/" class="button">COUNTRY</a>
+        <a href="/state" class="button">STATES</a>
+    </div>
+
+    <div class="dropdown-container">
+        <form action="/select_state" method="POST">
+            <select name="state" id="stateDropdown">
+                <option value="">-- Select a State --</option>
+                {% for state in states %}
+                    <option value="{{ state }}">{{ state }}</option>
+                {% endfor %}
+            </select>
+        </form>
+    </div>
+    {% if not hide_element %}
+    <div id="BarChart2" class="chart-container"></div>
+    <div id="ScatterChart" class="chart-container"></div>
+    <div id="LineChart" class="chart-container"></div>
+    <div id="DoughnutChart" class="chart-container"></div>
+    {% endif %}
+    <script>
+        document.getElementById('stateDropdown').addEventListener('change', function() {
+            var selectedState = this.value;
+            if (selectedState) {
+                window.location.href = '/select_state?state=' + selectedState;
+            }
+        });
+
+        var states = {{ states | tojson | default([]) }};
+        var clusters = {{ clusters | tojson | default([]) }};
+        var totalCrimes = {{ total_crimes | tojson | default([]) }};
+        var districts = {{ districts | tojson | default([]) }};
+        var d_clusters = {{ clusters_d | tojson | default([]) }};
+        var d_totalCrimes = {{ total_crimes_d | tojson | default([]) }};
+        var crimeSums = {{ crime_sums | tojson | default([]) }};
+        var crimeLabels = {{ crime_labels | tojson | default([]) }};
+        var colors = ['lightblue', 'lightgreen', 'lightcoral', 'orange', 'pink'];
+        var colorMap = ['#ff6384', '#36a2eb', '#cc65fe'];
+
+        var stateColors = clusters.map(function(cluster) {
+            return colorMap[cluster % colorMap.length];
+        });
+
+        var districtColors = d_clusters.map(function(cluster) {
+            return colorMap[cluster % colorMap.length];
+        });
+
+        Highcharts.chart('BarChart2', {
+            chart: {
+                type: 'column'
+            },
+            title: {
+                text: 'Total Cyber Crimes by District'
+            },
+            xAxis: {
+                categories: districts
+            },
+            yAxis: {
+                title: {
+                    text: 'Total Crimes'
+                }
+            },
+            series: [{
+                name: 'Total Cyber Crimes',
+                data: d_totalCrimes,
+                colorByPoint: true,
+                colors: districtColors
+            }],
+            tooltip: {
+                formatter: function() {
+                    return this.x + ': ' + this.y + ' crimes (Cluster: ' + d_clusters[this.point.index] + ')';
+                }
+            }
+        });
+
+        // Scatter Chart
+        Highcharts.chart('ScatterChart', {
+            chart: {
+                type: 'scatter',
+                zoomType: 'xy'
+            },
+            title: {
+                text: 'Total Cyber Crimes by District'
+            },
+            xAxis: {
+                title: {
+                    text: 'Districts'
+                },
+                categories: districts,
+                labels: {
+                    formatter: function() {
+                        return this.value; 
+                    }
+                }
+            },
+            yAxis: {
+                title: {
+                    text: 'Total Crimes'
+                }
+            },
+            series: [{
+                name: 'Total Cyber Crimes',
+                data: districts.map((district, index) => [index, d_totalCrimes[index]]),
+                colorByPoint: true,
+                colors: districtColors
+            }],
+            tooltip: {
+                formatter: function() {
+                    return this.x + ': ' + this.y + ' crimes (Cluster: ' + d_clusters[this.point.index] + ')';
+                }
+            }
+        });
+
+        // Doughnut Chart
+        Highcharts.chart('DoughnutChart', {
+            chart: {
+                type: 'pie'
+            },
+            title: {
+                text: 'Distribution of Selected Cyber Crimes'
+            },
+            plotOptions: {
+                pie: {
+                    innerSize: '50%',
+                    dataLabels: {
+                        enabled: true,
+                        format: '<b>{point.name}</b>: {point.y} cases'
+                    }
+                }
+            },
+            series: [{
+                name: 'Crimes',
+                data: crimeLabels.map(function(label, index) {
+                    return {
+                        name: label,
+                        y: crimeSums[index],
+                        color: colors[index % colors.length]
+                    };
+                })
+            }]
+        });
+
+        // Line Chart
+        Highcharts.chart('LineChart', {
+            chart: {
+                type: 'line'
+            },
+            title: {
+                text: 'Total Cyber Crimes by District'
+            },
+            xAxis: {
+                title: {
+                    text: 'Districts'
+                },
+                categories: districts
+            },
+            yAxis: {
+                title: {
+                    text: 'Total Crimes'
+                }
+            },
+            series: [{
+                name: 'Total Cyber Crimes',
+                data: d_totalCrimes,
+                color: '#7cb5ec',
+                marker: {
+                    enabled: true
+                }
+            }],
+            tooltip: {
+                formatter: function() {
+                    return this.x + ': ' + this.y + ' crimes (Cluster: ' + d_clusters[this.point.index] + ')';
+                }
+            }
+        });
+    </script>
+</body>
+</html>
